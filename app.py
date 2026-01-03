@@ -52,11 +52,13 @@ def get_metrics():
 # --- UI HEADER ---
 st.title("🛡️ SentinAI: Process-Aware Resource Governor")
 st.markdown("Advanced Edge AI that detects resource anomalies and identifies the **Process ID** responsible.")
+st.info("ℹ️ This system learns your normal PC behavior and alerts you when unusual resource spikes occur, pinpointing the exact process causing the issue.")
 
 col_nav1, col_nav2 = st.columns([1, 3])
 
 with col_nav1:
     st.subheader("Control System")
+    st.caption("Switch between monitoring your system or training the AI on your usage patterns.")
     mode = st.radio("System Mode:", ["Monitor (Active)", "Retrain System"])
     
     if os.path.exists(MODEL_FILE):
@@ -68,6 +70,7 @@ with col_nav1:
 if mode == "Retrain System":
     st.header("🧠 Context Learning Phase")
     st.info("Click Start. For 30 seconds, vary your usage (Idle vs Active).")
+    st.caption("The AI will observe your CPU, RAM, and Disk activity to understand what's normal for your system.")
     
     if st.button("Start Context Learning"):
         progress = st.progress(0)
@@ -119,12 +122,15 @@ elif mode == "Monitor (Active)":
     c1, c2 = st.columns([2, 1])
     with c1:
         st.subheader("Live Tensor Stream")
+        st.caption("Real-time CPU usage over the last 60 seconds - spikes indicate potential anomalies.")
         chart_place = st.empty()
     with c2:
         st.subheader("Forensics Log")
+        st.caption("AI analysis results - shows which process is causing resource anomalies.")
         log_place = st.empty()
         
     start_monitoring = st.checkbox("Enable Real-Time Watchdog", value=True)
+    st.caption("Toggle to start/stop continuous monitoring. The AI scans your system every second.")
     
     if start_monitoring:
         while True:
@@ -172,6 +178,12 @@ elif mode == "Monitor (Active)":
                 log_place.info("Scanning processes...")
             
             st.session_state['history_cpu'].append(raw_metrics[0])
-            chart_place.line_chart(list(st.session_state['history_cpu']))
+            
+            # Create DataFrame with proper labels for chart
+            cpu_data = pd.DataFrame(
+                list(st.session_state['history_cpu']),
+                columns=["CPU Usage (%)"]
+            )
+            chart_place.line_chart(cpu_data, x_label="Time (seconds)", y_label="CPU (%)")
             
             time.sleep(1)
