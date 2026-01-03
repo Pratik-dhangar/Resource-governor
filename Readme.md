@@ -1,5 +1,5 @@
 # 🛡️ SentinAI: Process-Aware Resource Governor
-<div align="center">  <a href="" target="_blank"><img src="https://img.shields.io/badge/🚀Live-Demo-success?style=for-the-badge" alt="Live Demo"></a> </div>
+<div align="center">  <a href="https://resource-governor-obqqqkh768wsbssggcbzds.streamlit.app/" target="_blank"><img src="https://img.shields.io/badge/🚀Live-Demo-success?style=for-the-badge" alt="Live Demo"></a> </div>
 An **Edge AI-powered system monitor** that learns your computer's normal behavior and detects resource anomalies in real-time. When unusual CPU, RAM, or Disk activity is detected, SentinAI automatically identifies the exact process responsible.
 
 ## 🎯 What Makes This "Edge AI"?
