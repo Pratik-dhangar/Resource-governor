@@ -163,7 +163,8 @@ elif mode == "Monitor (Active)":
             # 4. SLIDING WINDOW LOGIC
             st.session_state['anomaly_buffer'].append(prediction)
             anomaly_count = st.session_state['anomaly_buffer'].count(-1)
-            is_confirmed_anomaly = anomaly_count >= (WINDOW_SIZE - 1)
+            # Require majority (3 out of 5) for confirmed anomaly
+            is_confirmed_anomaly = anomaly_count >= 3
             
             # 5. FORENSICS
             culprit_name = "System"
@@ -183,11 +184,11 @@ elif mode == "Monitor (Active)":
                 status_metric.metric("Status", "CRITICAL ANOMALY", delta="-ALERT", delta_color="inverse")
                 log_place.error(f"🚨 **ANOMALY DETECTED**\n\n**Culprit:** {culprit_name}\n**PID:** {culprit_pid}\n**CPU:** {raw_metrics[0]}%\n**Confidence:** {abs(score):.2f}")
             elif prediction == -1:
-                status_metric.metric("Status", "Analyzing Spike...", delta="warn", delta_color="off")
+                status_metric.metric("Status", "Analyzing Spike...", delta="⚠️", delta_color="off")
                 log_place.warning("⚠️ Short spike detected (filtering noise...)")
             else:
-                status_metric.metric("Status", "System Nominal", delta="OK")
-                log_place.info("Scanning processes...")
+                status_metric.metric("Status", "System Nominal", delta="✓", delta_color="normal")
+                log_place.success("✅ System running normally")
             
             st.session_state['history_cpu'].append(raw_metrics[0])
             
