@@ -22,6 +22,13 @@ if 'history_cpu' not in st.session_state:
     st.session_state['history_cpu'] = deque(maxlen=60)
 if 'anomaly_buffer' not in st.session_state:
     st.session_state['anomaly_buffer'] = deque(maxlen=WINDOW_SIZE)
+# Session-based model storage (unique per user session)
+if 'model' not in st.session_state:
+    st.session_state['model'] = None
+if 'scaler' not in st.session_state:
+    st.session_state['scaler'] = None
+if 'model_trained' not in st.session_state:
+    st.session_state['model_trained'] = False
 
 # --- HELPER: IDENTIFY TOP PROCESS ---
 def get_top_process():
@@ -61,10 +68,16 @@ with col_nav1:
     st.caption("Switch between monitoring your system or training the AI on your usage patterns.")
     mode = st.radio("System Mode:", ["Monitor (Active)", "Retrain System"])
     
-    if os.path.exists(MODEL_FILE):
-        st.success("✅ Brain Loaded from Disk")
+    if st.session_state['model_trained']:
+        st.success("✅ Your Personal AI Model Loaded")
+        if st.button("🗑️ Reset Model", help="Clear your trained model and start fresh"):
+            st.session_state['model'] = None
+            st.session_state['scaler'] = None
+            st.session_state['model_trained'] = False
+            st.success("Model reset! Please retrain.")
+            st.rerun()
     else:
-        st.warning("⚠️ No Brain Found. Please Train.")
+        st.warning("⚠️ No Model Found. Please Train First.")
 
 # --- MODE: RETRAIN SYSTEM ---
 if mode == "Retrain System":
@@ -94,23 +107,22 @@ if mode == "Retrain System":
         model = IsolationForest(contamination=CONTAMINATION, random_state=42)
         model.fit(X_scaled)
         
-        with open(MODEL_FILE, 'wb') as f:
-            pickle.dump(model, f)
-        with open(SCALER_FILE, 'wb') as f:
-            pickle.dump(scaler, f)
+        # Store in session state (user-specific, in-memory)
+        st.session_state['model'] = model
+        st.session_state['scaler'] = scaler
+        st.session_state['model_trained'] = True
             
-        st.success("✅ Training Complete! Switch to 'Monitor' mode.")
+        st.success("✅ Training Complete! Your personal model is ready. Switch to 'Monitor' mode.")
 
 # --- MODE: MONITOR (ACTIVE) ---
 elif mode == "Monitor (Active)":
-    if not os.path.exists(MODEL_FILE):
-        st.error("Please train the model first.")
+    if not st.session_state['model_trained']:
+        st.error("Please train your personal model first.")
         st.stop()
         
-    with open(MODEL_FILE, 'rb') as f:
-        model = pickle.load(f)
-    with open(SCALER_FILE, 'rb') as f:
-        scaler = pickle.load(f)
+    # Load from session state (user-specific model)
+    model = st.session_state['model']
+    scaler = st.session_state['scaler']
         
     kpi1, kpi2, kpi3 = st.columns(3)
     kpi1_metric = kpi1.empty()
