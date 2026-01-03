@@ -18,6 +18,7 @@ Unlike cloud-based monitoring solutions, SentinAI runs **entirely on your local 
 - **Process Forensics**: Automatically identifies which application (PID & name) is causing resource spikes
 - **Smart Filtering**: Uses a sliding window approach to ignore brief spikes and confirm sustained anomalies
 - **Self-Learning**: Trains on your actual usage patterns to minimize false positives
+- **Session-Based Models**: Each user gets their own personalized model (perfect for multi-user deployments)
 - **Interactive Dashboard**: Built with Streamlit for live visualization and control
 
 ## 🧠 Edge AI Concepts Used
@@ -73,15 +74,24 @@ This prevents "crying wolf" on harmless, transient spikes.
 
 ### 4. **Edge Deployment Strategy**
 
-**Model Persistence**: Trained model is saved as `.pkl` files (~10KB each)
+**Session-Based Model Storage**: For multi-user deployments (like Streamlit Cloud), models are stored in `st.session_state` instead of disk files:
+
 ```python
-pickle.dump(model, 'sentinai_model.pkl')
-pickle.dump(scaler, 'sentinai_scaler.pkl')
+# Store model in user's browser session (in-memory)
+st.session_state['model'] = model
+st.session_state['scaler'] = scaler
+st.session_state['model_trained'] = True
 ```
+
+**Why Session Storage?**
+- ✅ **Privacy**: Each user's model is isolated from others
+- ✅ **Personalization**: User A's gaming PC model doesn't affect User B's laptop model
+- ✅ **No Conflicts**: Concurrent users don't overwrite each other's data
+- ⚠️ **Trade-off**: Model resets when browser session ends (requires retraining on revisit)
 
 **Inference Pipeline**:
 1. **Acquire** → Read CPU/RAM/Disk from `psutil`
-2. **Preprocess** → Scale using saved scaler
+2. **Preprocess** → Scale using session-stored scaler
 3. **Infer** → Predict anomaly (< 50ms)
 4. **Act** → Identify culprit process if anomaly confirmed
 
@@ -168,11 +178,11 @@ When an anomaly is detected, displays:
 ```
 Resource-governor/
 ├── app.py                    # Main Streamlit application
-├── sentinai_model.pkl        # Trained Isolation Forest model
-├── sentinai_scaler.pkl       # Feature scaler
 ├── requirements.txt          # Python dependencies
 └── README.md                 # This file
 ```
+
+**Note**: Models are stored in-memory per session (`st.session_state`), not as persistent `.pkl` files.
 
 ## 🔬 Technical Details
 
@@ -190,11 +200,12 @@ Resource-governor/
 - **Training Time**: ~30 seconds
 - **Inference Time**: <50ms per prediction
 - **Model Size**: ~10KB
+- **Storage**: In-memory session state (browser-specific, not persisted to disk)
 
-
-## 🚨 Limitations
+### Performance
 
 - **Training Required**: Must calibrate to your specific system
+- **Session-Based**: Model resets when you close your browser (requires retraining on next visit)
 - **Single-Machine**: Doesn't correlate anomalies across multiple devices
 - **Resource Intensive Apps**: May flag legitimate heavy workloads (e.g., video rendering)
 - **No Historical Analysis**: Only monitors current state, doesn't log long-term trends
