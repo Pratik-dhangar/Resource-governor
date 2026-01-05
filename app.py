@@ -5,6 +5,7 @@ import numpy as np
 import time
 import pickle
 import os
+import winsound
 from collections import deque
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
@@ -29,6 +30,8 @@ if 'scaler' not in st.session_state:
     st.session_state['scaler'] = None
 if 'model_trained' not in st.session_state:
     st.session_state['model_trained'] = False
+if 'sound_enabled' not in st.session_state:
+    st.session_state['sound_enabled'] = True
 
 # --- HELPER: IDENTIFY TOP PROCESS ---
 def get_top_process():
@@ -68,6 +71,12 @@ with col_nav1:
     st.caption("Switch between monitoring your system or training the AI on your usage patterns.")
     mode = st.radio("System Mode:", ["Monitor (Active)", "Retrain System"])
     
+    st.divider()
+    st.subheader("Alert Settings")
+    sound_toggle = st.checkbox("🔊 Sound Alerts", value=st.session_state['sound_enabled'], help="Play alarm sound when anomalies are detected")
+    st.session_state['sound_enabled'] = sound_toggle
+    
+    st.divider()
     if st.session_state['model_trained']:
         st.success("✅ Your Personal AI Model Loaded")
         if st.button("🗑️ Reset Model", help="Clear your trained model and start fresh"):
@@ -183,6 +192,18 @@ elif mode == "Monitor (Active)":
             if is_confirmed_anomaly:
                 status_metric.metric("Status", "CRITICAL ANOMALY", delta="-ALERT", delta_color="inverse")
                 log_place.error(f"🚨 **ANOMALY DETECTED**\n\n**Culprit:** {culprit_name}\n**PID:** {culprit_pid}\n**CPU:** {raw_metrics[0]}%\n**Confidence:** {abs(score):.2f}")
+                
+                # Play sound alarm if enabled
+                if st.session_state['sound_enabled']:
+                    try:
+                        # Play 3 beeps: 1000Hz for 200ms, pause 100ms
+                        winsound.Beep(1000, 200)
+                        time.sleep(0.1)
+                        winsound.Beep(1000, 200)
+                        time.sleep(0.1)
+                        winsound.Beep(1000, 200)
+                    except Exception:
+                        pass  # Silently fail if sound doesn't work
             elif prediction == -1:
                 status_metric.metric("Status", "Analyzing Spike...", delta="⚠️", delta_color="off")
                 log_place.warning("⚠️ Short spike detected (filtering noise...)")
