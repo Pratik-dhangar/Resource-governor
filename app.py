@@ -5,10 +5,17 @@ import numpy as np
 import time
 import pickle
 import os
-import winsound
+import base64
 from collections import deque
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
+
+# Cross-platform sound support
+try:
+    import winsound
+    HAS_WINSOUND = True
+except ImportError:
+    HAS_WINSOUND = False
 
 # --- CONFIGURATION ---
 MODEL_FILE = 'sentinai_model.pkl'
@@ -195,15 +202,28 @@ elif mode == "Monitor (Active)":
                 
                 # Play sound alarm if enabled
                 if st.session_state['sound_enabled']:
-                    try:
-                        # Play 3 beeps: 1000Hz for 200ms, pause 100ms
-                        winsound.Beep(1000, 200)
-                        time.sleep(0.1)
-                        winsound.Beep(1000, 200)
-                        time.sleep(0.1)
-                        winsound.Beep(1000, 200)
-                    except Exception:
-                        pass  # Silently fail if sound doesn't work
+                    if HAS_WINSOUND:
+                        try:
+                            # Windows: Play 3 beeps: 1000Hz for 200ms
+                            winsound.Beep(1000, 200)
+                            time.sleep(0.1)
+                            winsound.Beep(1000, 200)
+                            time.sleep(0.1)
+                            winsound.Beep(1000, 200)
+                        except Exception:
+                            pass
+                    else:
+                        # Non-Windows: Use browser-based audio
+                        try:
+                            # Generate a simple beep sound using HTML5 audio
+                            audio_html = """
+                            <audio autoplay>
+                                <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZRA0PVa3n5bJeGwc9mNr0v3IdBSuBzvLaiTkIGGa67OmVSw0NUqbj8bllHQY2kNbx0IMpBSh5yPDblkEKE1y06+qnVhQKRp/g8r5sIQUxh9Hz04IzBh1twO/kmUQND1Wt5+WyXhsHPZja9L9yHQUrgc7y2ok5CBhmuuzplUsNDVKm4/G5ZR0GNo/W8dCDKQUoecjw25ZBChNctOvqp1YUCkWf4PK+bCEFMYfR89OCMwYdbcDv5JlEDQ9Vrufmsl4bBz2Y2vS/ch0FK4HO8tqJOQgYZrrs6ZVLDAxSpuPxuWUdBjaP1vHQgykFKHnI8NuWQQoTXLTr6qdWFApFn+DyvmwhBTGH0fPTgjMGHW3A7+SZRA0PVa7n5rJeGwc9mNr0v3IdBSuBzvLaiTkIGGa67OmVSw0MUqbj8bllHQY2j9bx0IMpBSh5yPDblkEKE1y06+qnVhQKRZ/g8r5sIQUxh9Hz04IzBh1twO/kmUQND1Wu5+ayXhsHPZja9L9yHQUrgc7y2ok5CBhmuuzplUsNDFKm4/G5ZR0GNo/W8dCDKQUoecjw25ZBChNctOvqp1YUCkWf4PK+bCEFMYfR89OCMwYdbcDv5JlEDQ9Vrufmsl4bBz2Y2vS/ch0FK4HO8tqJOQgYZrrs6ZVLDQxSpuPxuWUdBjaP1vHQgykFKHnI8NuWQQoTXLTr6qdWFApFn+DyvmwhBTGH0fPTgjMGHW3A7+SZRA0PVa7n5rJeGwc9mNr0v3IdBSuBzvLaiTkIGGa67OmVSw0MUqbj8bllHQY2j9bx0IMpBSh5yPDblkEKE1y06+qnVhQKRZ/g8r5sIQUxh9Hz04IzBh1twO/kmUQND1Wu5+ayXhsHPZja9L9yHQUrgc7y2ok5CBhmuuzplUsNDFKm4/G5ZR0GNo/W8dCDKQUoecjw25ZBChNctOvqp1YUCkWf4PK+bCEFMYfR89OCMwYdbcDv5JlEDQ9Vrufmsl4bBz2Y2vS/cA==">
+                            </audio>
+                            """
+                            st.markdown(audio_html, unsafe_allow_html=True)
+                        except Exception:
+                            pass
             elif prediction == -1:
                 status_metric.metric("Status", "Analyzing Spike...", delta="⚠️", delta_color="off")
                 log_place.warning("⚠️ Short spike detected (filtering noise...)")
